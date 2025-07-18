@@ -1,0 +1,7 @@
+pandas
+folium
+sqlalchemy
+PublicDataReader
+PyYAML
+openpyxl
+streamlit 

@@ -1,0 +1,299 @@
+\documentclass[a4paper,10pt]{article}
+\usepackage{kotex}         % 한글 사용을 위한 패키지
+\usepackage[margin=1in]{geometry} 
+\usepackage{amsmath, amssymb}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{enumerate}
+\usepackage{listings}
+\usepackage{color}
+\usepackage{fancyvrb}
+\usepackage{longtable} 
+\usepackage{tabularx} % preamble에 추가
+% 코드 하이라이팅을 위한 설정 (Python, SAS, SQL 등)
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\lstset{
+    language=Python,
+    basicstyle=\ttfamily\small,
+    numbers=left,
+    numberstyle=\tiny\color{codegray},
+    stepnumber=1,
+    numbersep=5pt,
+    breaklines=true,
+    frame=single,
+    tabsize=4,
+    showstringspaces=false
+}
+
+\title{지역 단위별 지니계수 계산 프로젝트 \\ \vspace{0.3cm} \large 부동산 거래 데이터 및 건강보험 소득 데이터 분석}
+\author{권휘준}
+\date{}
+
+\begin{document}
+\maketitle
+\tableofcontents
+\newpage
+
+\section{서론}
+본 문서는 지역 단위별로 지니계수를 산출하기 위한 두 가지 데이터 처리 및 분석 프로젝트에 관한 종합적인 설명을 제공한다. 첫번째 분석은 부동산 거래 데이터를 기반으로 하며, 두번째 분석은 건강보험 소득 데이터를 활용한다. 각각의 데이터 출처, 수집 및 전처리 방법, 분석 과정에 대해 상세히 기술하고, 사용된 프로그래밍 언어 및 코드를 개괄적으로 소개한다.
+
+\section{분석 개요}
+\subsection{분석 목표}
+본 연구의 주목적은 다음과 같다:
+\begin{enumerate}[1)]
+    \item 부동산 거래 데이터와 건강보험 소득 데이터를 활용하여 지역 단위별 지니계수를 계산.
+    \item 각 지역 단위(시도, 시군구, 행정동, 법정동, 선거구)별로 소득 및 부동산 거래의 불평등 정도를 평가.
+\end{enumerate}
+
+\subsection{데이터 출처 및 수집 방법}
+\subsubsection{부동산 거래 데이터}
+부동산 거래 데이터는 API를 이용한 수집과, Excel 파일을 직접 다운 받는 2가지 작업을 모두 수행하였다. 
+\paragraph{데이터 기간}
+\begin{itemize}
+    \item \textbf{공공데이터 포털, 국토교통부 실거래가 (XML):} \\
+    \url{https://www.data.go.kr/data/15126468/openapi.do#/API%20목록/getRTMSDataSvcAptTradeDev}
+    \item \textbf{조건별 자료제공 (Excel):} \\
+    \url{https://rt.molit.go.kr/pt/xls/xls.do?mobileAt=}
+\end{itemize}
+
+\paragraph{데이터 수집 방법}
+Open API를 활용하여, 월별, 지역별 데이터를 요청함으로써 2006년 1월부터 2024년 5월까지의 데이터를 수집하였다.
+
+\subsubsection{건강보험 소득 데이터}
+\begin{itemize}
+    \item \textbf{출처:} 건강보험공단 (건강보험 빅데이터 플랫폼 \url{https://nhiss.nhis.or.kr}).
+    \item \textbf{수집 방법:} 건강보험공단 분석 센터에 방문하여, 가상화 컴퓨터를 활용하여 분석 후 결과를 반출하였다.
+\end{itemize}
+
+\paragraph{데이터 설명}
+건강보험공단에서 제공하는 소득 데이터는 건강보험 가입자의 보험료 납부 내역을 기반으로 하여 소득 수준을 추정할 수 있는 중요한 자료이다. 본 연구에서는 해당 데이터를 활용하여 지역별 소득 분포를 분석하고, 이를 바탕으로 지니계수를 산출하였다.
+\begin{itemize}
+    \item \textbf{데이터 구분 및 범위:}
+    \begin{itemize}
+        \item \textbf{JB:} 전북 지역 데이터
+        \item \textbf{JK:} 전국 데이터
+        \item \textbf{전국 데이터} 모두 포함
+    \end{itemize}
+    \item \textbf{데이터 테이블:}
+    \begin{itemize}
+        \item 테이블 명: \texttt{dses\_2002} $\sim$ \texttt{dses\_2022}
+        \item 기준년도: 2002년부터 2022년까지
+        \item 데이터 수: (해당 데이터의 구체적 수치는 추후 명시)
+    \end{itemize}
+    \item \textbf{주요 변수:}
+    \begin{itemize}
+        \item \texttt{INDI\_DSCM\_NO} : 개인 식별 아이디
+        \item \texttt{SEX\_TYPE} : 성별
+        \item \texttt{STD\_YYYY} : 기준년도
+        \item \texttt{GAIBJA\_TYPE} : 가입자 구분
+        \item \texttt{RVSN\_ADDR\_CD} : 시군구 코드를 변환하여 사용 (지역코드가 없는 경우 약 5만 명 정도 존재) \\
+              \quad 형태: 8자리 (예: 11380570, 11380520, 41281575 등).\\
+              \quad 창원, 마산 등 일부 지역 코드 확인 필요.
+    \end{itemize}
+\end{itemize}
+본 연구에서는 특히 지역 단위의 불평등 분석을 위해 행정동 코드와 선거구 코드를 활용하여 데이터를 매핑하였다.
+
+\newpage
+\section{데이터 전처리 및 매핑 과정}
+\subsection{부동산 거래 데이터 전처리}
+부동산 거래 데이터는 거래 당시의 법정동 코드와 행정동 코드를 기반으로 선거구를 매핑하는 과정을 거쳤다. 구체적인 전처리 절차는 다음과 같다:
+\begin{enumerate}
+    \item \textbf{법정동 코드 변환:} 수집 당시의 법정동 코드를 거래 당시의 법정동 코드로 변환.
+    \item \textbf{행정동 코드 변환:} 거래 당시의 법정동 코드를 행정동 코드로 변환.
+    \item \textbf{선거구 매핑:} 거래 당시 행정동 코드와 선거구 정보를 매핑하여 각 거래별로 선거구를 할당.
+\end{enumerate}
+이를 통해 시도, 시군구, 행정동, 법정동, 선거구 단위의 지니계수 산출이 가능하게 되었다. 분석 코드는 Python을 사용하였으며, 관련 코드는 부동산 폴더 내의 \texttt{code} 디렉터리에서 확인할 수 있다.
+
+\section{추가 내용: 선거구 데이터 및 아파트 매매 데이터의 지니계수 변환 과정}
+
+\subsection{국회의원선거 데이터 개요}
+본 연구에서는 대한민국 선거구 분석을 위해 국회의원선거 18대부터 21대(향후 22대 포함)까지의 데이터를 활용하였다. 각 선거대별 선거연도와 지역구 의석수는 아래와 같다:
+
+\begin{center}
+\begin{tabular}{cccccc}
+\hline
+선거대 & 18대 & 19대 & 20대 & 21대 & 22대 \\
+\hline
+선거연도 & 2008 & 2012 & 2016 & 2020 & 2024 \\
+지역구 의석수 & 245 & 253 & 253 & 253 & 253 \\
+\hline
+\end{tabular}
+\end{center}
+
+이와 같이, 18대 선거에서는 245석, 이후 선거에서는 253석의 지역구 의석수가 배분되었으며, 이를 바탕으로 선거구별 불평등 지표를 산출하였다.
+
+\subsection{아파트 매매 데이터의 선거구별 지니계수 변환 과정}
+아래는 아파트 매매 데이터를 선거구 단위의 지니계수로 변환하는 과정에 대한 코드 분석 내용을 기술한 것이다.
+
+우선, 원시 아파트 거래 데이터는 \texttt{pandas} 라이브러리를 활용하여 로드된 후, 전처리 모듈(\texttt{preprocess.DataProcessor})를 통해 데이터 정제 과정을 거친다. 이 과정에서 거래 데이터의 법정동 코드가 추출되며, 이후 과거와 현재의 법정동 코드 간 매핑이 이루어진다. 이를 위해 별도의 매핑 파일(\texttt{mapping.xlsx})을 불러와, 코드의 데이터 타입을 일치시키고, 과거시점 법정동 코드로 변환한다.
+
+전처리된 데이터에 대해, \texttt{matching.Matcher} 클래스를 사용하여 선거일 기준의 법정동 코드를 생성하고, 이를 현재 법정동 코드와 비교하여 복원 작업을 수행한다. 이어서, 행정동 코드 매칭 과정에서는, 선거일을 기준으로 생성일자와 말소일자를 고려한 행정동 코드 데이터셋과 병합하여, 각 거래의 행정동 코드를 할당한다.
+
+그 후, 선거구 매핑 단계에서는, 별도로 준비된 선거구-행정동 매핑 파일(\texttt{선거구\_행정동\_매칭\_수기2.xlsx})과 병합하여, 각 아파트 거래 데이터에 해당하는 선거구 정보를 부여한다. 이때 불필요한 컬럼은 제거되고, 지역 단위(시군구, 읍면동, 선거구)에 따라 별도의 식별 컬럼이 생성된다.
+
+마지막으로, 선거구별로 그룹화하여 \texttt{calculate\_gini.GiniCalculator} 클래스를 통해 각 그룹 내 지니계수를 산출한다. 계산된 결과는 엑셀 파일로 저장되며, 이 과정에서 매핑 누락 항목(예: 선거구 혹은 행정동 코드가 매칭되지 않은 데이터)도 함께 검토되어, 전체적인 데이터 정합성을 확보하는 데 기여한다.
+
+이와 같이, 코드에서는 데이터 전처리, 행정동 및 선거구 코드의 매핑, 그리고 최종적인 지니계수 산출까지 일련의 과정이 체계적으로 수행됨을 확인할 수 있다.
+
+\begin{center}
+\begin{tabularx}{\textwidth}{lXXXX}
+    \hline
+    선거대 & 기간 & RAW 데이터 수 & 전처리 후 데이터 수 & 매칭되지 않은 행 (행정동/선거구) \\
+    \hline
+    18대\_국회의원 & 2007-04-10 $\sim$ 2008-04-09 & 539,087 & 508,661 & 10,369 / 10,369 \\
+    19대\_국회의원 & 2011-04-12 $\sim$ 2012-04-11 & 643,185 & 501,527 & 2,480 / 2,487 \\
+    20대\_국회의원 & 2015-04-14 $\sim$ 2016-04-13 & 631,466 & 624,803 & 9,705 / 9,705 \\
+    21대\_국회의원 & 2019-04-16 $\sim$ 2020-04-15 & 863,382 & 641,875 & 4,585 / 4,585 \\
+    22대\_국회의원 & 2023-04-18 $\sim$ 2024-04-17 & 412,982 & 410,839 & 0 / 56,218 \\
+    \hline
+\end{tabularx}
+\end{center}
+
+
+
+\subsection{건강보험 소득 데이터 전처리}
+건강보험 소득 데이터의 경우, 행정동 코드와 선거구 코드를 매핑하는 과정을 통해 지역 단위의 소득 불평등 지표를 산출하였다. 전처리 과정은 아래와 같다:
+\begin{enumerate}
+    \item \textbf{행정동 코드 확인:} 소득 데이터 내 행정동 코드를 확인 및 정제.
+    \item \textbf{선거구 매핑:} 행정동 코드와 선거구 코드를 매핑하여 각 데이터에 선거구 정보를 추가.
+\end{enumerate}
+이 분석은 SAS와 SQL을 활용하여 수행되었으며, 해당 코드 역시 별도의 프로젝트 디렉터리에 저장되어 있다.
+
+\section{분석 방법론}
+\subsection{지니계수 산출 방법}
+지니계수는 소득 또는 거래 가격 분포의 불평등 정도를 수치화한 지표이다. 본 연구에서는 각 행정 구역별로 산출된 분포 데이터를 기반으로 지니계수를 계산하였으며, 아래의 수식을 참고하였다:
+\begin{equation}
+    G = \frac{\sum_{i=1}^{n} \sum_{j=1}^{n} | x_i - x_j |}{2n^2 \mu}
+\end{equation}
+여기서 \( x_i \)는 개별 관측값, \( n \)은 총 관측 수, 그리고 \( \mu \)는 평균값이다.
+
+\subsection{분석 구현 및 코드 관리}
+\begin{itemize}
+    \item 부동산 거래 데이터 분석은 \textbf{Python}을 활용하여 구현.
+    \item 건강보험 소득 데이터 분석은 \textbf{SAS}와 \textbf{SQL}을 통해 수행.
+    \item 코드 관리 및 버전 관리는 Git을 사용하여 체계적으로 관리하고 있다.
+\end{itemize}
+
+
+\newpage
+\section{결과 및 논의}
+\subsection{부동산 거래 데이터 결과}
+
+
+\subsection{건강보험 소득 데이터 결과}
+
+
+\section{결론}
+본 프로젝트는 부동산 거래 데이터와 건강보험 소득 데이터를 기반으로 지역 단위별 지니계수를 산출하여 지역 간 불평등 정도를 정량적으로 평가하는 데 목적이 있다. 데이터 전처리 과정에서 행정동 및 선거구 매핑의 중요성이 강조되었으며, 이를 통해 보다 정밀한 분석이 가능함을 확인하였다. =
+
+\section{참고문헌}
+\begin{enumerate}
+    \item 공공데이터 포털, 국토교통부 실거래가, \url{https://www.data.go.kr/data/15126468/openapi.do#/API%20목록/getRTMSDataSvcAptTradeDev}
+    \item 국토교통부 실거래가(Excel), \url{https://rt.molit.go.kr/pt/xls/xls.do?mobileAt=}
+    \item 건강보험공단 데이터센터 방문 자료.
+    \item 유종성 외 (2021), \textit{소득분배 연구를 위한 건보공단 빅데이터의 의의와 한계: 서울시 사례연구를 중심으로}.
+    \item 서울시복지재단 (2021), \textit{행정자료를 활용한 서울시의 불평등과 빈곤에 관한 연구 (2차 연도)}, \url{https://drive.google.com/file/d/1FoVKtt3AZlxMuz-fYnQDz0ivDkNRuPEL/view}.
+    \item 관련 Python, SAS, SQL 코드 및 분석 문서.
+\end{enumerate}
+
+\newpage
+
+
+\section{부록 A; 데이터 구조}
+\subsection{A-1. 부동산 거래 데이터}
+
+
+\subsection*{A-2. 건강보험 소득 데이터 변수 정의서}
+
+
+
+\section*{부록: SAS 코드 예시}
+아래는 건강보험 소득 데이터 분석 시 활용한 SAS 코드의 예시이다.
+\begin{Verbatim}[frame=single,fontsize=\small]
+%macro calc_by_region(start=2002, end=2021, codelen=1);
+
+   /* 0. mapping.xlsx 파일을 불러오기 (바탕화면 경로로 설정) */
+   proc import datafile="C:\Users\YourUserName\Desktop\mapping.xlsx"
+       out=work.mapping
+       dbms=xlsx
+       replace;
+       sheet="Sheet1";  /* 시트명이 다르면 변경 */
+       getnames=yes;
+   run;
+
+   %do year = &start %to &end;
+      
+      /* 1) 필요한 컬럼 추출 -> inc_연도 테이블 (예시) */
+      PROC SQL;
+         CREATE TABLE inc_&year AS
+         SELECT
+            SUBSTR(RVSN_ADDR_CD, 1, &codelen) AS region_code,
+            INC_TOT
+         FROM mylib.dses_&year
+         WHERE INC_TOT > 0
+         ORDER BY region_code, INC_TOT
+         ;
+      QUIT;
+
+      /* 2) region_code별 지니계수 -> gini_연도 */
+      DATA gini_&year (KEEP=region_code gini);
+         SET inc_&year;
+         BY region_code;
+         RETAIN rank 0 n 0 sum_inc 0 partial 0;
+         IF FIRST.region_code THEN DO;
+            rank = 0; n = 0; sum_inc = 0; partial = 0;
+         END;
+         rank + 1;
+         n + 1;
+         sum_inc + INC_TOT;
+         partial + (2 * rank) * INC_TOT;
+         IF LAST.region_code THEN DO;
+            gini = (partial - (n + 1)*sum_inc) / (n*sum_inc);
+            OUTPUT;
+         END;
+      RUN;
+
+      /* 3) 통계치 -> stats_연도 */
+      PROC SQL;
+         CREATE TABLE stats_&year AS
+         SELECT 
+            region_code,
+            COUNT(*)          AS cnt,
+            MEAN(INC_TOT)     AS avg_inc,
+            MAX(INC_TOT)      AS max_inc,
+            STD(INC_TOT)      AS std_inc,
+            MEDIAN(INC_TOT)   AS med_inc
+         FROM inc_&year
+         GROUP BY region_code
+         ORDER BY region_code
+         ;
+      QUIT;
+
+      /* 4) 지니 + 통계 -> final_연도 병합 */
+      DATA final_&year;
+         MERGE gini_&year(IN=a) stats_&year(IN=b);
+         BY region_code;
+         IF a AND b;
+      RUN;
+
+      /* 5) 연도 변수 추가 */
+      DATA final_&year;
+         SET final_&year;
+         year = &year;       /* 연도 칼럼 추가 */
+      RUN;
+
+   %end;
+
+   /* 6) 모든 연도의 final_&year를 하나로 합쳐서 final_all 생성 */
+   DATA final_all;
+      SET 
+         %do year = &start %to &end;
+            final_&year
+         %end;
+      ;
+   RUN;
+
+%mend calc_by_region;
+\end{Verbatim}
+
+\end{document}
