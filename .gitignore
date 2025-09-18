@@ -59,4 +59,13 @@ data/processed/
 
 # Temporary files
 *.tmp
-*.temp 
+*.temp
+
+# Test files
+*test*.py
+*simple*.py
+test_results.*
+*.backup
+
+# AWS credentials (already covered by .env but being explicit)
+secrets.toml 

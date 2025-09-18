@@ -2,13 +2,44 @@ import streamlit as st
 import pandas as pd
 import yaml
 import pathlib
+import os
 from datetime import date 
 from source import election_processor, election_processor_lease
+from s3_utils import download_db_from_s3, check_s3_connection
 import io
 
-# DB 경로 동적으로 생성
+# DB 경로 및 S3 설정
 BASE_DIR = pathlib.Path(__file__).parent
-DB_PATH = BASE_DIR / "data" / "raw" / "RealEstate.db"
+DB_PATH = BASE_DIR / "data" / "raw" / "RealEstate_optimized.db"
+
+# S3 설정 (환경변수 또는 Streamlit secrets에서 가져오기)
+S3_BUCKET_NAME = os.getenv('S3_BUCKET_NAME', 'gini-coefficient-db')
+S3_DB_KEY = 'RealEstate_optimized.db'
+
+# 앱 시작시 데이터베이스 다운로드
+@st.cache_resource
+def ensure_database_available():
+    """
+    S3에서 데이터베이스를 다운로드하여 로컬에 저장
+    캐시를 사용하여 한 번만 실행
+    """
+    if not DB_PATH.exists():
+        st.info("🚀 첫 실행입니다! AWS S3에서 데이터베이스를 준비중...")
+        
+        # S3 연결 확인
+        if not check_s3_connection(S3_BUCKET_NAME):
+            st.error("❌ AWS S3 연결에 실패했습니다. 설정을 확인해주세요.")
+            st.stop()
+        
+        # 데이터베이스 다운로드
+        if not download_db_from_s3(S3_BUCKET_NAME, S3_DB_KEY, str(DB_PATH)):
+            st.error("❌ 데이터베이스 다운로드에 실패했습니다.")
+            st.stop()
+    
+    return str(DB_PATH)
+
+# 데이터베이스 준비
+db_path = ensure_database_available()
 
 # 설정 파일 로드 (여러 경로 시도)
 config_paths = [

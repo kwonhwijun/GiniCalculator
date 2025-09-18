@@ -4,4 +4,6 @@ sqlalchemy
 PublicDataReader
 PyYAML
 openpyxl
-streamlit 
+streamlit
+boto3
+python-dotenv 
