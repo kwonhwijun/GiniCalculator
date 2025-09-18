@@ -1,0 +1,12 @@
+src_dir: './source'
+db_path: './data/raw/RealEstate.db'
+db_path_Rent: './data/toy/test.db'
+elections:
+  '18대_국회의원': '080409'
+  '19대_국회의원': '120411'
+  '20대_국회의원': '160413'
+  '21대_국회의원': '200415'
+  '22대_국회의원': '240417'
+
+
+  

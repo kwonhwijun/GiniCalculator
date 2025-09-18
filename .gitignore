@@ -49,7 +49,6 @@ data/processed/
 *.log
 
 # Config files with sensitive data
-config.yaml
 .env
 
 # Jupyter Notebook

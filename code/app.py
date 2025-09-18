@@ -10,10 +10,35 @@ import io
 BASE_DIR = pathlib.Path(__file__).parent
 DB_PATH = BASE_DIR / "data" / "raw" / "RealEstate.db"
 
-# 설정 파일 로드
-config_path = BASE_DIR / 'config.yaml' # 설정 파일 경로도 동적으로 변경
-with open(config_path, 'r', encoding="utf-8") as file:
-    config = yaml.safe_load(file)
+# 설정 파일 로드 (여러 경로 시도)
+config_paths = [
+    BASE_DIR / 'config.yaml',  # 현재 디렉토리
+    BASE_DIR.parent / 'config.yaml',  # 상위 디렉토리
+    pathlib.Path('config.yaml'),  # 실행 디렉토리
+    pathlib.Path('../config.yaml')  # 상위 디렉토리 (상대경로)
+]
+
+config = None
+for config_path in config_paths:
+    try:
+        with open(config_path, 'r', encoding="utf-8") as file:
+            config = yaml.safe_load(file)
+            break
+    except FileNotFoundError:
+        continue
+
+# config.yaml을 찾을 수 없는 경우 기본값 사용
+if config is None:
+    st.warning("config.yaml 파일을 찾을 수 없어 기본 설정을 사용합니다.")
+    config = {
+        'elections': {
+            '18대_국회의원': '080409',
+            '19대_국회의원': '120411', 
+            '20대_국회의원': '160413',
+            '21대_국회의원': '200415',
+            '22대_국회의원': '240417'
+        }
+    }
 
 선거리스트 = config['elections']
 
