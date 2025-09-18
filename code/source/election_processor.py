@@ -106,13 +106,14 @@ def process_election_data(election_data, election_name, election_date, region_un
         gini_calculator = calculate_gini.GiniCalculator(merged_district)
         
         # 디버깅: region_unit 값 확인 및 로그 출력
-        valid_units = ["시군구", "읍면동", "선거구"]
+        # '행정동'과 '읍면동'은 동일 취지로 처리
+        valid_units = ["시군구", "읍면동", "행정동", "선거구"]
         logging.info("선택된 지역 단위 (region_unit): %s", region_unit)
         logging.info("유효한 지역 단위 목록: %s", valid_units)
 
         if region_unit == "시군구":
             region_column = '시도_시군구'
-        elif region_unit == "읍면동":
+        elif region_unit in ["읍면동", "행정동"]:
             region_column = '시도_시군구_읍면동'
         elif region_unit == '선거구':
             region_column = '시도명district'  # 수정: 결합된 칼럼 사용
@@ -159,11 +160,35 @@ def create_folder():
         logging.info(f"결과 저장 디렉토리 생성: {directory}")
     return directory
 
-def save_results(results, election_name, region_unit, directory):
+def save_results(results, election_name, region_unit, directory, start_date=None, end_date=None):
     """
     처리된 결과를 Excel 파일로 저장하는 함수
     """
-    file_path = os.path.join(directory, f'{election_name}_{region_unit}_매핑과정.xlsx')
+    import datetime
+    
+    # 현재 날짜와 시간
+    now = datetime.datetime.now()
+    save_date = now.strftime('%Y%m%d')
+    save_time = now.strftime('%H%M')
+    
+    # 시작 날짜와 끝 날짜 형식 변환
+    if start_date:
+        if isinstance(start_date, str):
+            start_date_formatted = start_date
+        else:
+            start_date_formatted = start_date.strftime('%Y%m%d')
+    else:
+        start_date_formatted = '00000000'
+        
+    if end_date:
+        if isinstance(end_date, str):
+            end_date_formatted = end_date
+        else:
+            end_date_formatted = end_date.strftime('%Y%m%d')
+    else:
+        end_date_formatted = '00000000'
+    
+    file_path = os.path.join(directory, f'{start_date_formatted}_{end_date_formatted}_{election_name}_{region_unit}_지니계수.xlsx')
     try:
         logging.info(f"{election_name} 결과 저장 시작")
         with pd.ExcelWriter(file_path) as writer:
@@ -224,7 +249,7 @@ def process_and_save_all_elections(election_list, db_path, table_name, start_dat
             
             logging.info(f"{election_name} 처리 완료")
             logging.info(f"{election_name} 저장 시작...")
-            save_results(results, election_name, region_unit, folder)
+            save_results(results, election_name, region_unit, folder, start_date, end_date)
             
         logging.info("모든 선거 데이터 처리 및 저장 완료")
         return results
